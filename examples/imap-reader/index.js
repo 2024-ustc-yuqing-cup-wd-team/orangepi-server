@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Minimal IMAP reader.
+ * Minimal read-only IMAP reader built on imapflow.
  *
  * Configuration comes from environment variables (see .env.example); nothing is
  * hard-coded. Run it with:
@@ -10,11 +10,11 @@
  *   npm install
  *   npm start
  *
- * This example is intentionally read-only: it lists and previews messages and
- * never marks, deletes or sends anything.
+ * This example only lists and previews messages: it never marks, moves, deletes
+ * or sends anything.
  */
 
-const Imap = require('imap');
+const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
 
 const host = process.env.IMAP_HOST;
@@ -26,83 +26,57 @@ if (!host || !user || !password) {
   process.exit(1);
 }
 
-const config = {
-  user,
-  password,
-  host,
-  port: Number(process.env.IMAP_PORT || 993),
-  tls: (process.env.IMAP_TLS || 'true') !== 'false',
-  tlsOptions: { servername: host }
-};
-
 const mailbox = process.env.IMAP_MAILBOX || 'INBOX';
 const unseenOnly = (process.env.IMAP_UNSEEN_ONLY || 'true') !== 'false';
 const limit = Math.max(1, Number(process.env.IMAP_LIMIT || 10));
 
-const imap = new Imap(config);
-
-function fail(error) {
-  console.error('IMAP error:', error && error.message ? error.message : error);
-  process.exitCode = 1;
-  try {
-    imap.end();
-  } catch (ignored) {
-    // The connection may already be closed.
-  }
-}
+const client = new ImapFlow({
+  host,
+  port: Number(process.env.IMAP_PORT || 993),
+  secure: (process.env.IMAP_TLS || 'true') !== 'false',
+  auth: { user, pass: password },
+  logger: false
+});
 
 function preview(message) {
   const body = (message.text || '').replace(/\s+/g, ' ').trim();
   return body.length > 200 ? `${body.slice(0, 200)}…` : body;
 }
 
-imap.once('ready', () => {
-  imap.openBox(mailbox, false, (openError) => {
-    if (openError) {
-      fail(openError);
+async function main() {
+  await client.connect();
+
+  const lock = await client.getMailboxLock(mailbox);
+  try {
+    const criteria = unseenOnly ? { seen: false } : { all: true };
+    const uids = await client.search(criteria, { uid: true });
+
+    if (!uids || uids.length === 0) {
+      console.log(`No ${unseenOnly ? 'unseen ' : ''}messages in ${mailbox}.`);
       return;
     }
 
-    imap.search(unseenOnly ? ['UNSEEN'] : ['ALL'], (searchError, results) => {
-      if (searchError) {
-        fail(searchError);
-        return;
-      }
+    const selected = uids.slice(-limit);
+    for await (const message of client.fetch(selected, { envelope: true, source: true, uid: true }, { uid: true })) {
+      const parsed = await simpleParser(message.source);
+      console.log('---');
+      console.log('Subject:', parsed.subject || '(none)');
+      console.log('From:', parsed.from ? parsed.from.text : '(unknown)');
+      console.log('Date:', parsed.date ? parsed.date.toISOString() : '(unknown)');
+      console.log('Preview:', preview(parsed));
+    }
+  } finally {
+    lock.release();
+  }
+}
 
-      if (!results || results.length === 0) {
-        console.log(`No ${unseenOnly ? 'unseen ' : ''}messages in ${mailbox}.`);
-        imap.end();
-        return;
-      }
-
-      const selected = results.slice(-limit);
-      const fetch = imap.fetch(selected, { bodies: '' });
-
-      fetch.on('message', (message) => {
-        message.on('body', (stream) => {
-          simpleParser(stream, (parseError, parsed) => {
-            if (parseError) {
-              console.error('Could not parse a message:', parseError.message);
-              return;
-            }
-            console.log('---');
-            console.log('Subject:', parsed.subject || '(none)');
-            console.log('From:', parsed.from ? parsed.from.text : '(unknown)');
-            console.log('Date:', parsed.date ? parsed.date.toISOString() : '(unknown)');
-            console.log('Preview:', preview(parsed));
-          });
-        });
-      });
-
-      fetch.once('error', fail);
-      fetch.once('end', () => {
-        console.log('Done.');
-        imap.end();
-      });
+main()
+  .catch((error) => {
+    console.error('IMAP error:', error && error.message ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    client.logout().catch(() => {
+      // The connection may already be closed after an error.
     });
   });
-});
-
-imap.once('error', fail);
-imap.once('end', () => console.log('Connection closed.'));
-imap.connect();

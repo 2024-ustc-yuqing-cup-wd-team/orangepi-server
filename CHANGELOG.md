@@ -18,7 +18,7 @@ Post-competition cleanup of the Orange Pi deployment.
   `deploy/scripts/deploy-site.sh` (site update).
 - A small Express service exposing `GET /api/health` and `GET /api`.
 - `examples/imap-reader/`: a read-only IMAP demo configured entirely through
-  environment variables.
+  environment variables and built on the maintained `imapflow` client.
 - Documentation: setup, operations, architecture and IMAP notes.
 - CI, issue templates, `.gitignore`, `.gitattributes` and `.editorconfig`.
 - `LICENSE` (MIT).

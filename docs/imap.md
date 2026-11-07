@@ -65,6 +65,7 @@ mailbox.
 
 ## Libraries
 
-- [`imap`](https://www.npmjs.com/package/imap) — IMAP client.
+- [`imapflow`](https://www.npmjs.com/package/imapflow) — maintained IMAP client
+  with a promise-based API.
 - [`mailparser`](https://www.npmjs.com/package/mailparser) — parses MIME
   messages into subject, sender, date and body.
