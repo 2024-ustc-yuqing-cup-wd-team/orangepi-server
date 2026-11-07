@@ -1,0 +1,18 @@
+{
+  "name": "imap-reader-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only IMAP reader demonstrating environment-based configuration.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --env-file=.env index.js"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "dependencies": {
+    "imap": "^0.8.19",
+    "mailparser": "^3.7.1"
+  },
+  "license": "MIT"
+}

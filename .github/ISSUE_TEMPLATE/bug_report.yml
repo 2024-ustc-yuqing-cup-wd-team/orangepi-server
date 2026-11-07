@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a problem with the deployment configuration or scripts.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. This repository is an archive of a 2024 competition
+        deployment, so fixes are best-effort. Please include the relevant log
+        lines — they usually identify the problem immediately.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: The command you ran and the result.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Output of `nginx -t`, `systemctl status myhomepage-api`, `journalctl -u myhomepage-api -n 50`, …
+      render: shell
+
+  - type: input
+    id: environment
+    attributes:
+      label: Board, OS and versions
+      placeholder: Orange Pi Zero 3, Debian 12, Node 22.11, Nginx 1.24
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I removed any credentials or private addresses from the logs above.
+          required: true

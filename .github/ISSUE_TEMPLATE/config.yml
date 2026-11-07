@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: The site itself
+    url: https://github.com/2024-ustc-yuqing-cup-wd-team/myhomepage
+    about: Bugs in the UI, bookmarks or calendar belong to the site repository.
+  - name: Live demo
+    url: https://2024-ustc-yuqing-cup-wd-team.github.io/myhomepage/
+    about: Try the deployed static site.
